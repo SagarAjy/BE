@@ -1,0 +1,716 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  extensions = [uuidOssp(map: "uuid-ossp")]
+}
+
+model address {
+  address_id  String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  customer_id String              @db.Uuid
+  type        address_type        @default(Current_Address)
+  address     String              @db.VarChar(255)
+  city        String              @db.VarChar(255)
+  state       String              @db.VarChar(255)
+  pincode     String              @db.VarChar(255)
+  house_type  house_types         @default(Owned)
+  status      verification_status @default(Not_Verified)
+  verified_by String?             @db.Uuid
+  created_at  DateTime            @default(now()) @db.Timestamp(6)
+  updated_at  DateTime            @default(now()) @db.Timestamp(6)
+  client_id   String              @db.Uuid
+  customers   customers           @relation(fields: [customer_id], references: [customer_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model approval {
+  approval_id            String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  customer_id            String          @db.Uuid
+  lead_id                String          @unique @db.Uuid
+  loan_type              loan_type       @default(payday)
+  product_type           String?         @db.VarChar(255)
+  branch                 String          @db.VarChar(255)
+  loan_amt_approved      Float           @default(0.00)
+  tenure                 Int
+  roi                    Float
+  salary_date            String?         @db.VarChar(255)
+  repay_date             DateTime        @db.Timestamp(6)
+  processing_fee         Float           @default(0.00)
+  conversion_fees        Float           @default(0.00)
+  gst                    Float           @default(0.00)
+  alternate_mobile       String          @db.VarChar(20)
+  official_email         String          @db.VarChar(100)
+  monthly_income         Float           @default(0.00)
+  cibil                  Int
+  status                 approval_status
+  final_remark           String?         @db.VarChar(255)
+  remark                 String?         @db.VarChar(255)
+  loan_purpose           String?         @db.VarChar(255)
+  credited_by            String          @db.Uuid
+  created_at             DateTime        @default(now()) @db.Timestamp(6)
+  updated_at             DateTime        @default(now()) @db.Timestamp(6)
+  loan_no                String?         @db.VarChar(255)
+  row_no                 Int             @default(autoincrement())
+  client_id              String          @db.Uuid
+  processing_fee_percent Float           @default(10.00)
+  conversion_fee_percent Float           @default(5.00)
+  leads                  leads           @relation(fields: [lead_id], references: [lead_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model call_history {
+  call_history_id String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  customer_id     String      @db.Uuid
+  lead_id         String      @db.Uuid
+  call_type       String      @db.VarChar(255)
+  status          lead_status
+  remark          String      @db.VarChar(255)
+  callback_time   DateTime?   @db.Timestamp(6)
+  called_by       String      @db.Uuid
+  created_at      DateTime    @default(now()) @db.Timestamp(6)
+  updated_at      DateTime    @default(now()) @db.Timestamp(6)
+  client_id       String      @db.Uuid
+}
+
+model collection {
+  collection_id     String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  customer_id       String      @db.Uuid
+  lead_id           String      @db.Uuid
+  loan_no           String      @db.VarChar(255)
+  collected_amount  Float
+  penalty_amount    Float?
+  collected_mode    String      @default("Account") @db.VarChar(255)
+  collected_date    DateTime    @default(now()) @db.Timestamp(6)
+  collection_time   String      @db.VarChar(255)
+  reference_no      String      @db.VarChar(255)
+  discount_amount   Float       @default(0.00)
+  settlement_amount Float       @default(0.00)
+  status            lead_status @default(Part_Payment)
+  remark            String      @db.VarChar(255)
+  collected_by      String      @db.Uuid
+  created_at        DateTime    @default(now()) @db.Timestamp(6)
+  client_id         String      @db.Uuid
+  leads             leads       @relation(fields: [lead_id], references: [lead_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model customers {
+  customer_id     String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name            String              @db.VarChar(100)
+  gender          genders?
+  dob             DateTime            @db.Date
+  mobile          String              @db.VarChar(100)
+  email           String              @db.VarChar(100)
+  pancard         String?             @db.VarChar(100)
+  aadhar_no       String?             @db.VarChar(100)
+  marital_status  marital_status
+  is_verified     verification_status @default(Not_Verified)
+  employee_type   employee_types      @default(Salaried)
+  created_at      DateTime            @default(now()) @db.Timestamp(6)
+  updated_at      DateTime            @default(now()) @db.Timestamp(6)
+  client_id       String              @db.Uuid
+  address         address[]
+  customer_assets customer_assets[]
+  employer        employer[]
+  leads           leads[]
+  loan            loan[]
+  reference       reference[]
+}
+
+model document {
+  document_id   String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  customer_id   String              @db.Uuid
+  document_type document_type
+  document_url  String              @db.VarChar(255)
+  password      String?             @db.VarChar(255)
+  status        verification_status @default(Not_Verified)
+  verified_by   String?             @db.Uuid
+  verified_date DateTime?           @db.Date
+  uploaded_by   String?             @db.Uuid
+  is_archived   Boolean             @default(false)
+  uploaded_date DateTime            @default(now()) @db.Timestamp(6)
+  client_id     String              @db.Uuid
+  lead_id       String?             @db.Uuid
+}
+
+model employer {
+  employer_id                String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  customer_id                String              @db.Uuid
+  employer_name              String              @db.VarChar(255)
+  total_experience           String              @default("0-6 Months") @db.VarChar(255)
+  current_company_experience String              @default("0-6 Months") @db.VarChar(255)
+  address                    String              @db.VarChar(255)
+  city                       String              @db.VarChar(255)
+  state                      String              @db.VarChar(255)
+  pincode                    String              @db.VarChar(255)
+  status                     verification_status @default(Not_Verified)
+  verified_by                String?             @db.Uuid
+  created_at                 DateTime            @default(now()) @db.Timestamp(6)
+  updated_at                 DateTime            @default(now()) @db.Timestamp(6)
+  client_id                  String              @db.Uuid
+  customers                  customers           @relation(fields: [customer_id], references: [customer_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model leads {
+  lead_id             String                      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  customer_id         String                      @db.Uuid
+  user_id             String?                     @db.Uuid
+  collection_user_id  String?                     @db.Uuid
+  purpose             String                      @db.VarChar(255)
+  loan_required       String                      @db.VarChar(255)
+  tenure              Int                         @default(5)
+  monthly_income      String                      @db.VarChar(255)
+  salary_mode         String?                     @default("salaried") @db.VarChar(200)
+  city                String                      @db.VarChar(255)
+  state               String                      @db.VarChar(255)
+  pincode             String                      @db.VarChar(100)
+  status              lead_status                 @default(Fresh_Lead)
+  utm_source          String                      @default("website") @db.VarChar(255)
+  domain_name         String?                     @db.VarChar(255)
+  ip                  String                      @db.VarChar(255)
+  created_at          DateTime                    @default(now()) @db.Timestamp(6)
+  updated_at          DateTime                    @default(now()) @db.Timestamp(6)
+  waiver_approval     waiver_approval_status_type @default(None)
+  client_id           String                      @db.Uuid
+  gclid               String?                     @db.VarChar(255)
+  conversion_time     DateTime?                   @db.Timestamp(6)
+  conversion_name     String?                     @db.VarChar(255)
+  credit_manager_id   String?                     @db.Uuid
+  loan_type           loan_type                   @default(payday)
+  approval            approval?
+  collection          collection[]
+  collection_timeline collection_timeline[]
+  e_sign_docs         e_sign_docs[]
+  kyc_requests        kyc_requests[]
+  customers           customers                   @relation(fields: [customer_id], references: [customer_id], onDelete: NoAction, onUpdate: NoAction)
+  loan                loan[]
+  pd_visit            pd_visit[]
+}
+
+model loan {
+  loan_id                String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  lead_id                String      @db.Uuid
+  row_no                 Int         @default(autoincrement())
+  loan_no                String?     @unique @db.VarChar(255)
+  customer_id            String      @db.Uuid
+  loan_type              loan_type   @default(payday)
+  disbursal_amount       Float
+  disbursal_date         DateTime    @db.Timestamp(6)
+  disbursal_reference_no String?     @db.VarChar(255)
+  account_no             String      @db.VarChar(100)
+  account_type           String      @db.VarChar(100)
+  bank_ifsc              String      @db.VarChar(100)
+  bank                   String      @db.VarChar(255)
+  bank_branch            String      @db.VarChar(255)
+  cheque_details         String?     @db.VarChar(255)
+  pd_date                String      @db.VarChar(255)
+  pd_done_by             String?     @db.Uuid
+  processing_fee         Float       @default(0.00)
+  deduction              Float       @default(0.00)
+  remarks                String      @db.VarChar(255)
+  status                 loan_status
+  company_account_no     String      @default("") @db.VarChar(255)
+  disbursed_by           String      @db.Uuid
+  created_at             DateTime    @default(now()) @db.Timestamp(6)
+  updated_at             DateTime    @default(now()) @db.Timestamp(6)
+  waiver_request_amount  Float       @default(0)
+  client_id              String      @db.Uuid
+  waiver_request_type    String?     @db.VarChar(255)
+  conversion_fee         Float       @default(0.00)
+  emis                   emis[]
+  customers              customers   @relation(fields: [customer_id], references: [customer_id], onDelete: NoAction, onUpdate: NoAction, map: "customer_loan_fk")
+  leads                  leads       @relation(fields: [lead_id], references: [lead_id], onDelete: NoAction, onUpdate: NoAction, map: "lead_fk")
+}
+
+model reference {
+  reference_id String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  customer_id  String         @db.Uuid
+  relation     relation_types
+  name         String         @db.VarChar(255)
+  address      String?        @db.VarChar(255)
+  city         String?        @db.VarChar(255)
+  state        String?        @db.VarChar(255)
+  pincode      String?        @db.VarChar(255)
+  mobile       String         @db.VarChar(20)
+  created_by   String?        @db.Uuid
+  created_at   DateTime?      @default(now()) @db.Timestamp(6)
+  updated_at   DateTime?      @default(now()) @db.Timestamp(6)
+  client_id    String         @db.Uuid
+  customers    customers      @relation(fields: [customer_id], references: [customer_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model users {
+  user_id         String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name            String            @db.VarChar(100)
+  email           String            @unique @db.VarChar(255)
+  mobile          String            @db.VarChar(20)
+  branch          String            @db.VarChar(255)
+  role            roles             @default(Read_only)
+  status          user_status       @default(Active)
+  created_by      String            @db.Uuid
+  allowed_mac     String?           @db.VarChar(255)
+  otp             Int?
+  otp_timestamp   String?           @db.VarChar(255)
+  created_at      DateTime          @default(now()) @db.Timestamp(6)
+  updated_at      DateTime          @default(now()) @db.Timestamp(6)
+  client_ids      String[]          @db.Uuid
+  audit_logs      audit_logs[]
+  sanction_target sanction_target[]
+  userassigned    userassigned[]
+  userreportees   userreportees[]
+}
+
+model banks {
+  bank_id  BigInt @id
+  bank     String @db.VarChar(255)
+  ifsc     String @db.VarChar(255)
+  branch   String @db.VarChar(255)
+  address  String @db.VarChar(255)
+  contact  String @db.VarChar(255)
+  city     String @db.VarChar(255)
+  district String @db.VarChar(255)
+  state    String @db.VarChar(255)
+  status   Int
+}
+
+model userassigned {
+  id               String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_assigned_id String  @db.Uuid
+  role             roles
+  task_assigned    Boolean @default(false)
+  client_id        String  @db.Uuid
+  users            users   @relation(fields: [user_assigned_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model userreportees {
+  id               String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_reportee_id String @db.Uuid
+  user_id          String @db.Uuid
+  client_id        String @db.Uuid
+  users            users  @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model credit_report {
+  credit_report_id String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  lead_id          String  @db.Uuid
+  gross_income     Float[]
+  band_percent     Float
+  foir_score       Float
+  eligibile_amount Float
+  customer_id      String? @db.Uuid
+  client_id        String  @db.Uuid
+}
+
+model liabilities {
+  liabilities_id String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  lead_id        String  @db.Uuid
+  liability_name String  @db.VarChar(255)
+  credit         Float
+  debit          Float
+  customer_id    String? @db.Uuid
+  client_id      String  @db.Uuid
+}
+
+model branch_target {
+  bt_id       String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  target      Float
+  branch_name String   @db.VarChar(255)
+  month       String   @db.VarChar(255)
+  approved_by String   @db.Uuid
+  created_at  DateTime @default(now()) @db.Timestamp(6)
+  updated_at  DateTime @default(now()) @db.Timestamp(6)
+  client_id   String   @db.Uuid
+}
+
+model customer_assets {
+  asset_id    String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  asset_name  String    @db.VarChar(255)
+  asset_value String    @db.VarChar(255)
+  customer_id String    @db.Uuid
+  created_at  DateTime  @default(now()) @db.Timestamp(6)
+  updated_at  DateTime  @default(now()) @db.Timestamp(6)
+  client_id   String    @db.Uuid
+  customers   customers @relation(fields: [customer_id], references: [customer_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model sanction_target {
+  st_id            String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  sanction_user_id String   @db.Uuid
+  target           Float
+  month            String   @db.VarChar(255)
+  approved_by      String   @db.Uuid
+  created_at       DateTime @default(now()) @db.Timestamp(6)
+  updated_at       DateTime @default(now()) @db.Timestamp(6)
+  client_id        String   @db.Uuid
+  users            users    @relation(fields: [sanction_user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model customer_otp {
+  otp_id             String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  customer_mobile_no String @unique @db.VarChar(100)
+  otp                Int
+  otp_timestamp      String @db.VarChar(255)
+  client_id          String @db.Uuid
+}
+
+model kyc_requests {
+  kyc_id               String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  lead_id              String      @db.Uuid
+  kyc_request_id       String      @db.VarChar(255)
+  video_file_id        String?     @db.VarChar(255)
+  front_aadhar_card    String?     @db.VarChar(255)
+  back_aadhar_card     String?     @db.VarChar(255)
+  pan_card             String?     @db.VarChar(255)
+  customer_identifier  String      @db.Uuid
+  kyc_location         String?     @db.VarChar(255)
+  aadhar_dob           String?     @db.VarChar(255)
+  aadhar_no            String?     @db.VarChar(255)
+  aadhar_customer_name String?     @db.VarChar(255)
+  aadhar_father_name   String?     @db.VarChar(255)
+  aadhar_address       String?     @db.VarChar(255)
+  id_types             String?     @db.VarChar(255)
+  pan_dob              String?     @db.VarChar(255)
+  pan_no               String?     @db.VarChar(255)
+  pan_customer_name    String?     @db.VarChar(255)
+  pan_father_name      String?     @db.VarChar(255)
+  status               String?     @default("requested") @db.VarChar(255)
+  customer_status      user_status @default(Active)
+  request_by           String?     @db.Uuid
+  created_at           DateTime    @default(now()) @db.Timestamp(6)
+  client_id            String      @db.Uuid
+  leads                leads       @relation(fields: [lead_id], references: [lead_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model e_sign_docs {
+  e_sign_id         String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  lead_id           String      @db.Uuid
+  customer_id       String      @db.Uuid
+  e_sign_doc_id     String      @db.VarChar(255)
+  filename          String      @db.VarChar(255)
+  e_sign_request_by String?     @db.Uuid
+  customer_status   user_status @default(Active)
+  status            String?     @default("requested") @db.VarChar(255)
+  created_at        DateTime    @default(now()) @db.Timestamp(6)
+  client_id         String      @db.Uuid
+  leads             leads       @relation(fields: [lead_id], references: [lead_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model collection_timeline {
+  collection_timeline_id String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  customer_id            String   @db.Uuid
+  lead_id                String   @db.Uuid
+  related_to             String   @db.VarChar(255)
+  customer_response      String   @db.VarChar(255)
+  contacted_by           String   @db.Uuid
+  created_at             DateTime @default(now()) @db.Timestamp(6)
+  updated_at             DateTime @default(now()) @db.Timestamp(6)
+  client_id              String   @db.Uuid
+  leads                  leads    @relation(fields: [lead_id], references: [lead_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model pd_visit {
+  visit_id   String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  pd_id      String   @db.Uuid
+  lead_id    String   @db.Uuid
+  visit_date DateTime @db.Timestamp(6)
+  visit_time String   @db.VarChar(255)
+  client_id  String   @db.Uuid
+  leads      leads    @relation(fields: [lead_id], references: [lead_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model client {
+  client_id                      String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  client_name                    String      @db.VarChar(255)
+  client_logo                    String      @db.VarChar(255)
+  client_status                  user_status @default(Active)
+  created_at                     DateTime    @default(now()) @db.Timestamp(6)
+  updated_at                     DateTime    @default(now()) @db.Timestamp(6)
+  novu_key                       String?     @db.VarChar(255)
+  client_nbfc                    String?     @db.VarChar(255)
+  client_sanction_email          String?     @db.VarChar(255)
+  client_collection_email        String?     @db.VarChar(255)
+  client_info_email              String?     @db.VarChar(255)
+  client_loan_prefix             String?     @db.VarChar(255)
+  client_bank_accounts           Json[]
+  client_domain                  String?     @db.VarChar(255)
+  client_auto_disbursal_accounts Json[]
+  eligible_leads_conversion_name String?     @db.VarChar(255)
+  cashfree_integration           Boolean     @default(false)
+  cashfree_client_id             String?     @db.VarChar(255)
+  cashfree_secret_key            Json?
+  cashfree_public_key_url        String?     @db.VarChar(255)
+  client_penalty_roi             Float       @default(0.00)
+  google_sheet_key_url           String?     @db.VarChar(255)
+  google_sheet_id                String?     @db.VarChar(255)
+  loan_type                      loan_type   @default(payday)
+  default_loan_no                BigInt      @default(10000000000)
+  kyc_template_name              String?     @db.VarChar(255)
+  e_sign_id                      String?     @db.VarChar(255)
+}
+
+model auto_disbursal {
+  id             String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  payment_id     String  @db.VarChar(255)
+  acc_no         String  @db.VarChar(255)
+  ifsc           String  @db.VarChar(255)
+  mode           String  @db.VarChar(255)
+  payment_portal String  @db.VarChar(255)
+  disbursal_amt  Float
+  lead_id        String  @db.Uuid
+  status         String  @default("PENDING") @db.VarChar(255)
+  client_id      String  @db.Uuid
+  utr_no         String? @db.VarChar(255)
+}
+
+model audit_logs {
+  log_id     String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  activity   String?    @db.VarChar(255)
+  user_id    String     @db.Uuid
+  event_type event_type @default(Audit_Access)
+  created_at DateTime   @default(now()) @db.Timestamp(6)
+  client_id  String     @db.Uuid
+  users      users      @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model emis {
+  emi_id     String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  loan_id    String   @db.Uuid
+  loan_no    String   @db.VarChar(255)
+  emi_date   DateTime @db.Timestamp(6)
+  emi_amount Float
+  emi_status String   @db.VarChar(255)
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @default(now()) @db.Timestamp(6)
+  client_id  String   @db.Uuid
+  loan       loan     @relation(fields: [loan_id], references: [loan_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model tickets {
+  ticket_id       String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  ticket_number   String           @db.VarChar(255)
+  ticket_query    String           @db.VarChar(255)
+  ticket_category ticket_type
+  created_by      String           @db.Uuid
+  assigned_to     String?          @db.Uuid
+  status          ticket_status    @default(Open)
+  priority        priority_status
+  created_at      DateTime         @default(now()) @db.Timestamp(6)
+  updated_at      DateTime         @default(now()) @db.Timestamp(6)
+  client_id       String           @db.Uuid
+  ticket_comment  ticket_comment[]
+}
+
+model ticket_comment {
+  comment_id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  ticket_id            String   @db.Uuid
+  comment              String   @db.VarChar(255)
+  comment_by           String   @db.Uuid
+  comment_by_user_type String   @db.VarChar(255)
+  created_at           DateTime @default(now()) @db.Timestamp(6)
+  client_id            String   @db.Uuid
+  tickets              tickets  @relation(fields: [ticket_id], references: [ticket_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+enum address_type {
+  Permanent_Address @map("Permanent Address")
+  Current_Address   @map("Current Address")
+}
+
+enum approval_status {
+  Approved
+  Pending
+  Rejected
+  }
+
+enum collection_collected_mode {
+  Account
+  UPI
+  Cash
+  PayTM
+  e_mandate @map("e-mandate")
+}
+
+enum collection_status {
+  Closed
+  Part_Payment @map("Part Payment")
+  Settlement
+  EMI_Closed   @map("EMI Closed")
+  EMI_Paid     @map("EMI Paid")
+  EMI_Preclose @map("EMI Preclose")
+}
+
+enum document_type {
+  PAN_Card            @map("PAN Card")
+  Aadhar_Card         @map("Aadhar Card")
+  Voter_ID            @map("Voter ID")
+  Driving_License     @map("Driving License")
+  Passport
+  Bank_Statement      @map("Bank Statement")
+  Pay_Slip            @map("Pay Slip")
+  Selfie
+  ID_Card             @map("ID Card")
+  Cheque
+  Electricity_Bill    @map("Electricity Bill")
+  Mobile_Bill         @map("Mobile Bill")
+  Other
+  Video
+  ZIP
+  Collection_Document @map("Collection Document")
+}
+
+enum employee_types {
+  Salaried
+  Self_Employee @map("Self Employee")
+  Professional
+  Not_Employed  @map("Not Employed")
+}
+
+enum genders {
+  Male
+  Female
+}
+
+enum lead_status {
+  Fresh_Lead           @map("Fresh Lead")
+  Callback
+  Interested
+  Not_Interested       @map("Not Interested")
+  Wrong_Number         @map("Wrong Number")
+  Documents_Received   @map("Documents Received")
+  Approved
+  Bank_Update          @map("Bank Update")
+  Disbursed
+  Closed
+  Part_Payment         @map("Part Payment")
+  Settlement
+  Incomplete_Documents @map("Incomplete Documents")
+  DNC
+  Rejected
+  Not_Eligible         @map("Not Eligible")
+  Duplicate
+  Other
+  No_Answer            @map("No Answer")
+  EMI_Paid             @map("EMI Paid")
+  Less_Salary          @map("Less Salary")
+  Out_of_Range         @map("Out of Range")
+  EMI_PRECLOSE         @map("EMI PRECLOSE")
+}
+
+enum loan_status {
+  Disbursed
+  Bank_Update @map("Bank Update")
+  Failed
+  Refund
+}
+
+enum loan_type {
+  payday
+  emi
+}
+
+enum marital_status {
+  Married
+  Unmarried
+}
+
+enum relation_types {
+  Father
+  Mother
+  Brother
+  Sister
+  Spouse
+  Friend
+  Relative
+  Other
+  Office_colleague @map("Office colleague")
+}
+
+enum roles {
+  Admin
+  Tele_Caller          @map("Tele Caller")
+  Credit_Manager       @map("Credit Manager")
+  Collection_Manager   @map("Collection Manager")
+  Collection_Executive @map("Collection Executive")
+  Accounts
+  Recovery_Team        @map("Recovery Team")
+  Loan_Officer         @map("Loan Officer")
+  PD_Team              @map("PD Team")
+  Read_only            @map("Read only")
+  Service
+}
+
+enum utm_sources {
+  google
+  mobile_app
+  website
+  facebook
+  instagram
+  twitter
+  others
+  }
+
+enum verification_status {
+  Verified
+  Not_Verified @map("Not Verified")
+  Rejected
+}
+
+enum bank_status {
+  Active
+  Inactive
+}
+
+enum user_status {
+  Active
+  In_Active @map("In Active")
+}
+
+enum house_types {
+  Owned
+  Rented
+  Company_Provided @map("Company Provided")
+  Parental
+}
+
+enum waiver_approval_status_type {
+  None
+  Requested
+  Rejected
+  Accepted
+}
+
+enum event_type {
+  Download
+  Upload
+  Add
+  Update
+  Delete
+  Login
+  Verify
+  Audit_Access @map("Audit Access")
+}
+
+enum ticket_type {
+  Technical
+  Account
+  Feedback
+  Change
+  Disbursment
+  Collection
+  General
+}
+
+enum priority_status {
+  Low
+  Medium
+  High
+  Super
+}
+
+enum ticket_status {
+  Open
+  In_Progress @map("In Progress")
+  Closed
+  Resolved
+}
