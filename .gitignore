@@ -1,0 +1,25 @@
+# dependencies
+/node_modules
+
+# env files
+.env.local
+.env
+.env.dev
+.env.prod
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+#debug
+yarn-debug.log*
+yarn-error.log*
+
+.vscode
+
+/build
+
+/logs
+
+# Sentry Config File
+.sentryclirc
